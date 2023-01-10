@@ -1,60 +1,28 @@
 const express = require("express");
 const connectDatabase = require("./database");
-const User = require("./models/User");
-const bcrypt = require("bcryptjs");
+const authenticate = require("./middleware/authenticate");
+const routes = require("./routes/index");
 
+// Initialize app
 const app = express();
 
+// middlewares
 app.use(express.json());
 
-app.post("/register", async (req, res, next) => {
+// routes
+app.use(routes);
+
+app.get("/private", authenticate, async (req, res, next) => {
   try {
-    const { name, email, password } = req.body;
-
-    if (!name || !email || !password) {
-      return res.status(400).json({ message: "Invalid Data." });
-    }
-
-    let user = await User.findOne({ email });
-
-    if (user) {
-      return res.status(400).json({ message: "User is already existed." });
-    }
-
-    user = new User({ name, email, password });
-    const salt = await bcrypt.genSalt(10);
-    const hash = await bcrypt.hash(password, salt);
-    user.password = hash;
-
-    await user.save();
-
-    return res
-      .status(201)
-      .json({ message: "User is created successfully.", user });
+    const user = req.user;
+    return res.status(200).json({ message: "Authorized", user });
   } catch (error) {
     next(error);
   }
 });
 
-app.post("/login", async (req, res, next) => {
-  const { email, password } = req.body;
-  try {
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(400).json({ message: "Invalid Credentials" });
-    }
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ message: "Invalid Credentials" });
-    }
-
-    delete user._doc.password;
-
-    return res.status(200).json({ message: "Login successfull.", user });
-  } catch (error) {
-    next(error);
-  }
+app.get("/public", async (req, res, next) => {
+  return res.status(200).json({ message: "I am public route." });
 });
 
 app.get("/", (_req, res, _next) => {
@@ -63,7 +31,11 @@ app.get("/", (_req, res, _next) => {
 
 app.use((err, _req, res, _next) => {
   console.log(err);
-  res.status(500).json({ message: "Server Error Occurred." });
+  if (!err.status) {
+    res.status(500).json({ message: "Server Error Occurred." });
+  } else {
+    res.status(err.status).json({ message: err.message });
+  }
 });
 
 connectDatabase(`mongodb://127.0.0.1:27017/attendanceSystem`)
