@@ -4,25 +4,25 @@ const userController = require("../controller/user.controller");
 /**
  * Get user by id or email
  */
-router.get("/:userId", () => {});
+router.get("/:userId", userController.getUserById);
 
 /**
  * Update user by id
  * @method PUT
  */
-router.put("/:userId", () => {});
+router.put("/:userId", userController.putUserById);
 
 /**
  * Update user by id
  * @method PATCH
  */
-router.patch("/:userId", () => {});
+router.patch("/:userId", userController.patchUserById);
 
 /**
  * Delete user by id
  * @method DELETE
  */
-router.delete("/:userId", () => {});
+router.delete("/:userId", userController.deleteUserById);
 
 /**
  * Get all users, include
@@ -40,6 +40,6 @@ router.get("/", userController.getUsers);
  * Create new user
  * @method POST
  */
-router.post("/", () => {});
+router.post("/", userController.postUser);
 
 module.exports = router;
