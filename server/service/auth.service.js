@@ -1,16 +1,13 @@
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
-const User = require("../models/User");
 const { findUserByProperty, createNewUser } = require("./user.service");
+const error = require("../utils/error");
 
 exports.registerService = async ({ name, email, password }) => {
   let user = await findUserByProperty("email", email);
 
-  if (user) {
-    const error = new Error("User is already exist");
-    error.status = 400;
-    throw error;
-  }
+  if (user) throw error("User is already exist", 400);
+
   const salt = await bcrypt.genSalt(10);
   const hash = await bcrypt.hash(password, salt);
 
@@ -18,17 +15,18 @@ exports.registerService = async ({ name, email, password }) => {
 };
 
 exports.loginService = async ({ email, password }) => {
-  const user = await User.findOne({ email });
-  if (!user) {
-    return res.status(400).json({ message: "Invalid Credentials" });
-  }
+  const user = await findUserByProperty("email", email);
+  if (!user) throw error("Invalid Credentials", 400);
 
   const isMatch = await bcrypt.compare(password, user.password);
-  if (!isMatch) {
-    return res.status(400).json({ message: "Invalid Credentials" });
-  }
+  if (!isMatch) throw error("Invalid Credentials", 400);
 
-  delete user._doc.password;
-  const token = jwt.sign(user._doc, "secret_key", { expiresIn: "1h" });
-  return token;
+  const payload = {
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    roles: user.roles,
+    accountStatus: user.accountStatus,
+  };
+  return jwt.sign(payload, "secret_key", { expiresIn: "1h" });
 };
